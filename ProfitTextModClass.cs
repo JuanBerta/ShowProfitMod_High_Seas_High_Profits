@@ -1,6 +1,8 @@
 ﻿using HarmonyLib;
 using MelonLoader;
 using Mono.Security.Authenticode;
+using System;
+using System.Reflection;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -49,7 +51,7 @@ namespace ProfitTextMod
                 }
                 else
                 {
-                    GameObject sellObj = Object.Instantiate(averagePriceObj, __instance.transform);
+                    GameObject sellObj = GameObject.Instantiate(averagePriceObj, __instance.transform);
                     sellObj.name = "sell-profit";
                     sellProfit = sellObj.GetComponent<TMP_Text>();
                     RectTransform buyProfitRectTransform = sellObj.GetComponent<RectTransform>();
@@ -74,7 +76,7 @@ namespace ProfitTextMod
                 }
                 else
                 {
-                    GameObject buyObj = Object.Instantiate(averagePriceObj, __instance.transform);
+                    GameObject buyObj = GameObject.Instantiate(averagePriceObj, __instance.transform);
                     buyObj.name = "buy-profit";
                     buyProfit = buyObj.GetComponent<TMP_Text>();
                     RectTransform buyProfitRectTransform = buyObj.GetComponent<RectTransform>();
@@ -135,6 +137,35 @@ namespace ProfitTextMod
                     float savings = basePrice - unitCityPrice;
 
                     buyProfit.text = savings >= 0 ? $"<color=green>{(int)savings}</color>" : $"<color=red>{(int)savings}</color>";
+                }
+
+                // 1. Find the parent container
+                GameObject goodsContainer = GameObject.Find("ui/trade-window/window/trade/goods");
+
+                if (goodsContainer != null)
+                {
+                    // 2. Iterate through every good row (Mead, Ale, etc.)
+                    foreach (Transform goodRow in goodsContainer.transform)
+                    {
+                        // 3. Find the specific child by name
+                        Transform selectionBg = goodRow.GetChild(1);
+
+                        if (selectionBg != null)
+                        {
+                            // 4. Get the RectTransform to modify anchors
+                            RectTransform rect = selectionBg.GetComponent<RectTransform>();
+
+                            if (rect != null)
+                            {
+                                // Set the Anchor Max as requested
+                                rect.anchorMax = new Vector2(1.24f, rect.anchorMax.y);
+
+                                // QA Note: If the background looks offset, you may also need 
+                                // to set the sizeDelta or anchoredPosition to 0 to "snap" it to the new anchor.
+                                // rect.sizeDelta = new Vector2(0, rect.sizeDelta.y);
+                            }
+                        }
+                    }
                 }
             }
 
@@ -289,8 +320,11 @@ namespace ProfitTextMod
                 sellProfitRectTransform.offsetMin = new Vector2(90f, -50f);
                 sellProfitRectTransform.anchorMax = new Vector2(1f, 1f);
                 sellProfitRectTransform.anchorMin = new Vector2(1f, 1f);
-            }
 
+                Type tradeWindow = typeof(TradeWindow);
+                FieldInfo goodsInfo = tradeWindow.GetField("goods", BindingFlags.NonPublic | BindingFlags.Instance);
+                }
+            }
             private static void CheckIfObjExists(GameObject obj)
             {
                 if (obj == null)
@@ -300,4 +334,3 @@ namespace ProfitTextMod
             }
         }
     }
-}
