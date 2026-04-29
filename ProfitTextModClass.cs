@@ -9,6 +9,7 @@ using UnityEngine.UI;
 using zip.lexy.tgame.constants;
 using zip.lexy.tgame.state;
 using zip.lexy.tgame.ui.gamegeneration;
+using zip.lexy.tgame.ui.settings;
 using zip.lexy.tgame.ui.widget.trade;
 
 namespace ProfitTextMod
@@ -20,6 +21,8 @@ namespace ProfitTextMod
         {
             public static void Postfix(TradeWindowGood __instance)
             {
+                int displayMode = PlayerPrefs.GetInt("mod.profit_text.mode", 0);
+
                 var trv = Traverse.Create(__instance);
                 var gameState = trv.Property("gameState").GetValue<GameState>();
                 var priceCalculator = trv.Property("priceCalculator").GetValue<PriceCalculator>();
@@ -97,46 +100,73 @@ namespace ProfitTextMod
 
                 // --- DATA FETCHING ---
                 var cargoHolder = destination.GetCargoHolder(gameState);
-                MelonLogger.Msg($"CargoHolder: {(cargoHolder != null ? "Found" : "Not found")}");
+                //MelonLogger.Msg($"CargoHolder: {(cargoHolder != null ? "Found" : "Not found")}");
                 ItemStack itemStack = cargoHolder?.GetGood(__instance.GetGood());
-                MelonLogger.Msg($"ItemStack: {(itemStack != null ? $"Found (amount: {itemStack.amount}, avgCost: {itemStack.averageCost})" : "Not found")}");
+                //MelonLogger.Msg($"ItemStack: {(itemStack != null ? $"Found (amount: {itemStack.amount}, avgCost: {itemStack.averageCost})" : "Not found")}");
                 int tradeAmt = trv.Field("tradeAmount").GetValue<int>(); // The 1, 10, 100 multiplier [cite: 1]
-                MelonLogger.Msg($"Trade Amount: {tradeAmt}");
+                                                                         //MelonLogger.Msg($"Trade Amount: {tradeAmt}");
 
                 // --- SELL PROFIT LOGIC ---
                 if (itemStack != null && itemStack.amount > 0.1f)
                 {
-                    // Use 1 as the count to get the "Per Unit" price the city offers
                     int unitSellPrice = priceCalculator.CityBuysGoods(__instance.GetGood(), gameState.GetTradeCity(), tradeAmt);
-
-                    // Profit = (Unit Sale Price) - (Your Unit Average Cost)
                     float unitProfit = unitSellPrice - itemStack.averageCost;
 
-                    // If you want to see total profit for the whole slider amount:
-                    // float totalProfit = unitProfit * tradeAmt;
+                    string sellDisplayText = "";
+                    float finalSellVal = 0;
 
-                    sellProfit.text = unitProfit >= 0 ? $"<color=green>{(int)unitProfit}</color>" : $"<color=red>{(int)unitProfit}</color>";
+                    switch (displayMode)
+                    {
+                        case 1: // Total
+                            finalSellVal = unitProfit * tradeAmt;
+                            sellDisplayText = $"{(int)finalSellVal}";
+                            break;
+                        case 2: // Percentage
+                                // Added a check to prevent division by zero just in case
+                            float avgCost = itemStack.averageCost > 0 ? itemStack.averageCost : 1;
+                            finalSellVal = (unitProfit / avgCost) * 100f;
+                            sellDisplayText = $"{(int)finalSellVal}%";
+                            break;
+                        default: // Per Unit
+                            finalSellVal = unitProfit;
+                            sellDisplayText = $"{(int)finalSellVal}";
+                            break;
+                    }
 
-                    MelonLogger.Msg($"Unit Sell Price: {unitSellPrice}, Avg Cost: {itemStack.averageCost}, Unit Profit: {unitProfit}");
+                    sellProfit.text = finalSellVal >= 0 ? $"<color=green>{sellDisplayText}</color>" : $"<color=red>{sellDisplayText}</color>";
                 }
                 else
                 {
+                    // If we don't own the good, clear the text so it doesn't show the default label
                     sellProfit.text = "";
-                    MelonLogger.Msg("No goods to sell, skipping sell profit calculation.");
                 }
 
-                // Buy DEAL logic, if the gameState is available and has the corePrices dictionary (which it should, but better safe than crashy)
-                // Then we can compare the city's price to the global base price to determine if it's a good deal or not
+                // --- BUY PROFIT LOGIC ---
                 if (gameState != null && gameState.corePrices.TryGetValue(goodId, out float basePrice))
                 {
-                    // Get what the city charges for exactly 1 unit
                     int unitCityPrice = priceCalculator.CitySellsGoods(goodId, gameState.GetTradeCity(), tradeAmt);
+                    float unitSavings = basePrice - unitCityPrice;
 
-                    // Savings = (Standard Global Price) - (Current City Price)
-                    // Positive means it's a bargain (Cheap), Negative means it's overpriced
-                    float savings = basePrice - unitCityPrice;
+                    string buyDisplayText = "";
+                    float finalBuyVal = 0;
 
-                    buyProfit.text = savings >= 0 ? $"<color=green>{(int)savings}</color>" : $"<color=red>{(int)savings}</color>";
+                    switch (displayMode)
+                    {
+                        case 1: // Total
+                            finalBuyVal = unitSavings * tradeAmt;
+                            buyDisplayText = $"{(int)finalBuyVal}";
+                            break;
+                        case 2: // Percentage
+                            finalBuyVal = (unitSavings / basePrice) * 100f;
+                            buyDisplayText = $"{(int)finalBuyVal}%";
+                            break;
+                        default: // Per Unit
+                            finalBuyVal = unitSavings;
+                            buyDisplayText = $"{(int)finalBuyVal}";
+                            break;
+                    }
+
+                    buyProfit.text = finalBuyVal >= 0 ? $"<color=green>{buyDisplayText}</color>" : $"<color=red>{buyDisplayText}</color>";
                 }
 
                 // 1. Find the parent container
@@ -159,10 +189,6 @@ namespace ProfitTextMod
                             {
                                 // Set the Anchor Max as requested
                                 rect.anchorMax = new Vector2(1.24f, rect.anchorMax.y);
-
-                                // QA Note: If the background looks offset, you may also need 
-                                // to set the sizeDelta or anchoredPosition to 0 to "snap" it to the new anchor.
-                                // rect.sizeDelta = new Vector2(0, rect.sizeDelta.y);
                             }
                         }
                     }
@@ -190,6 +216,44 @@ namespace ProfitTextMod
             }
         }
 
+        [HarmonyPatch(typeof(GeneralSettingsWindow), "Start")]
+        public static class GeneralSettings_ProfitUI_Patch
+        {
+            public static void Postfix(GeneralSettingsWindow __instance)
+            {
+                Transform windowTransform = __instance.transform.Find("window");
+                Transform languageTransform = windowTransform?.Find("language");
+                if (languageTransform == null) return;
+
+                // 1. Clone the row
+                GameObject profitRow = UnityEngine.Object.Instantiate(languageTransform.gameObject, windowTransform);
+                profitRow.name = "profit_display_setting";
+
+                // 2. Position it under the previous mod setting (Offset -140 if Language is 0)
+                profitRow.transform.localPosition += new Vector3(0, -140, 0);
+
+                // 3. Setup Label
+                TMPro.TextMeshProUGUI label = profitRow.transform.Find("label").GetComponent<TMPro.TextMeshProUGUI>();
+                label.text = "Profit Display Mode";
+
+                // 4. Setup Dropdown
+                TMPro.TMP_Dropdown dropdown = profitRow.transform.Find("dropdown").GetComponent<TMPro.TMP_Dropdown>();
+                dropdown.onValueChanged = new TMPro.TMP_Dropdown.DropdownEvent();
+                dropdown.options.Clear();
+                dropdown.options.Add(new TMPro.TMP_Dropdown.OptionData { text = "Per Unit" });
+                dropdown.options.Add(new TMPro.TMP_Dropdown.OptionData { text = "Total" });
+                dropdown.options.Add(new TMPro.TMP_Dropdown.OptionData { text = "Percentage" });
+
+                // 5. Load/Save
+                int currentMode = PlayerPrefs.GetInt("mod.profit_text.mode", 0); // 0=Unit, 1=Total, 2=%
+                dropdown.SetValueWithoutNotify(currentMode);
+
+                dropdown.onValueChanged.AddListener((int val) => {
+                    PlayerPrefs.SetInt("mod.profit_text.mode", val);
+                    label.text = "Profit Display Mode";
+                });
+            }
+        }
 
         [HarmonyPatch(typeof(TradeWindow), "Start")]
         public static class Patch_TradeWindow_Start
