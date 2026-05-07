@@ -11,7 +11,7 @@ Dynamic UI Integration: Injects custom text elements directly into the game's tr
 ## 🛠 Installation
 This mod requires MelonLoader to run.
 
-Download the latest ProfitTextMod.dll from the Releases page.
+Download the latest ProfitTextMod.dll from here: [Download](https://lexydotzip.itch.io/hshp-show-profit).
 
 Navigate to your game folder (usually SteamLibrary\steamapps\common\High Seas, High Profits!).
 
