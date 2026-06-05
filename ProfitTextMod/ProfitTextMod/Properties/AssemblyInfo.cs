@@ -3,7 +3,7 @@ using ProfitTextMod;
 using System.Reflection;
 using System.Runtime.InteropServices;
 // ...
-[assembly: MelonInfo(typeof(ProfitTextModClass), "ProfitTextMod", "1.0.3", "Beinded")]
+[assembly: MelonInfo(typeof(ProfitTextModClass), "ProfitTextMod", "1.0.4", "Beinded")]
 [assembly: MelonGame("lexy.zip", "trading-game")]
 
 // General Information about an assembly is controlled through the following

@@ -13,6 +13,7 @@ using zip.lexy.tgame.ui.settings;
 using zip.lexy.tgame.ui.widget.trade;
 using ProfitTextMod.ExecuteProfitLogicClass;
 using ProfitTextMod.CheckIfObjExistsClass;
+using zip.lexy.tgame.localization;
 
 namespace ProfitTextMod
 {
@@ -60,7 +61,7 @@ namespace ProfitTextMod
                     sellObj.name = "sell-profit";
                     sellProfit = sellObj.GetComponent<TMP_Text>();
                     RectTransform buyProfitRectTransform = sellObj.GetComponent<RectTransform>();
-                    buyProfitRectTransform.anchoredPosition = new Vector2(buyProfitRectTransform.anchoredPosition.x, buyProfitRectTransform.anchoredPosition.y);
+                    buyProfitRectTransform.anchoredPosition = new Vector2(680f, buyProfitRectTransform.anchoredPosition.y);
                     buyProfitRectTransform.anchorMax = new Vector2(0.23f, buyProfitRectTransform.anchorMax.y);
                     SyncUiPropertiesClass.SyncUiPropertiesClass.SyncUiProperties(buyProfitRectTransform, avgTextTemplate, sellProfit);
 
@@ -83,7 +84,7 @@ namespace ProfitTextMod
                     buyObj.name = "buy-profit";
                     buyProfit = buyObj.GetComponent<TMP_Text>();
                     RectTransform buyProfitRectTransform = buyObj.GetComponent<RectTransform>();
-                    buyProfitRectTransform.anchoredPosition = new Vector2(buyProfitRectTransform.anchoredPosition.x, buyProfitRectTransform.anchoredPosition.y);
+                    buyProfitRectTransform.anchoredPosition = new Vector2(662.5f, buyProfitRectTransform.anchoredPosition.y);
                     buyProfitRectTransform.anchorMax = new Vector2(0.12f, buyProfitRectTransform.anchorMax.y);
                     SyncUiPropertiesClass.SyncUiPropertiesClass.SyncUiProperties(buyProfitRectTransform, avgTextTemplate, buyProfit);
 
@@ -186,7 +187,7 @@ namespace ProfitTextMod
                             if (rect != null)
                             {
                                 // Set the Anchor Max as requested
-                                rect.anchorMax = new Vector2(1.24f, rect.anchorMax.y);
+                                rect.anchorMax = new Vector2(1.29f, rect.anchorMax.y);
                             }
                         }
                     }
@@ -255,7 +256,7 @@ namespace ProfitTextMod
                 GameObject goldBorder = GameObject.Find("ui/trade-window/window/trade/gold-border");
                 CheckIfObjExistsClass.CheckIfObjExistsClass.CheckIfObjExists(goldBorder);
                 RectTransform goldBorderRectTransform = goldBorder.GetComponent<RectTransform>();
-                goldBorderRectTransform.anchorMax = new Vector2(1.234f, goldBorderRectTransform.anchorMax.y);
+                goldBorderRectTransform.anchorMax = new Vector2(1.28f, goldBorderRectTransform.anchorMax.y);
 
                 // Find window GameObject and set it up
                 GameObject window = GameObject.Find("ui/trade-window/window");
@@ -278,7 +279,7 @@ namespace ProfitTextMod
                 GameObject windowBase = GameObject.Find("ui/trade-window/window/window-base");
                 CheckIfObjExistsClass.CheckIfObjExistsClass.CheckIfObjExists(windowBase);
                 RectTransform windowBaseRectTransform = windowBase.GetComponent<RectTransform>();
-                windowBaseRectTransform.anchorMax = new Vector2(1.2f, windowBaseRectTransform.anchorMax.y);
+                windowBaseRectTransform.anchorMax = new Vector2(1.25f, windowBaseRectTransform.anchorMax.y);
 
                 // Set up trade
                 GameObject trade = GameObject.Find("ui/trade-window/window/trade");
@@ -289,6 +290,7 @@ namespace ProfitTextMod
                 GameObject windowRight = GameObject.Find("ui/trade-window/window/trade/window-right");
                 CheckIfObjExistsClass.CheckIfObjExistsClass.CheckIfObjExists(windowRight);
                 RectTransform windowRightRectTransform = windowRight.GetComponent<RectTransform>();
+                windowRightRectTransform.anchorMax = new Vector2(1.027f, windowRightRectTransform.anchorMax.y);
 
                 // Set up goods
                 GameObject goods = GameObject.Find("ui/trade-window/window/trade/goods");
@@ -329,42 +331,68 @@ namespace ProfitTextMod
                 GameObject averageObj = GameObject.Find("ui/trade-window/window/trade/window-right/average");
                 CheckIfObjExistsClass.CheckIfObjExistsClass.CheckIfObjExists(averageObj);
 
-                // Create a new GameObject for the sell profit text, using the averageObj as a template to ensure consistent styling
-                GameObject buyProfitLabel = new GameObject("buy-profit-label", typeof(RectTransform));
+                // --- BUY PROFIT LABEL ---
+                // Instantiate using averageObj as a template
+                GameObject buyProfitLabel = GameObject.Instantiate(averageObj, windowRight.transform);
+                buyProfitLabel.name = "buy-profit-label";
                 CheckIfObjExistsClass.CheckIfObjExistsClass.CheckIfObjExists(buyProfitLabel);
-                buyProfitLabel.transform.parent = windowRight.transform;
-                TextMeshProUGUI buyProfitText = buyProfitLabel.AddComponent<TextMeshProUGUI>();
+
+                // Define a unique localization key for the buy profit label
+                string buyProfitKey = "buy_profit_key";
+
+                // Register the key into the mod localization dictionary
+                Localization.AddModLocalization($"{buyProfitKey}", "Buy Profit");
+
+                // FIX 1: Get the existing component instead of adding a duplicate
+                TextMeshProUGUI buyProfitText = buyProfitLabel.GetComponent<TextMeshProUGUI>();
                 RectTransform buyProfitRectTransform = buyProfitLabel.GetComponent<RectTransform>();
 
-                // buyProfitText text configuration
-                buyProfitText.text = averageObj.GetComponent<TextMeshProUGUI>().text;
-                buyProfitText.text = "Buy Profit";
+                // Set the text using the localization system so it can be translated
+                buyProfitLabel.GetComponent<zip.lexy.tgame.localization.LocalizeField>().key = buyProfitKey;
+
+                // FIX 2: Use ForKey so the localization system actually reads your modded string
+                buyProfitText.text = Localization.ForKey($"{buyProfitKey}");
+
+                // FIX 3: Adjusted font sizes so min size doesn't exceed base size
                 buyProfitText.fontSize = 16f;
                 buyProfitText.fontSizeMax = 72f;
-                buyProfitText.fontSizeMin = 18f;
+                buyProfitText.fontSizeMin = 12f;
 
-                buyProfitRectTransform.offsetMax = new Vector2(-4f, -29f);
+                buyProfitRectTransform.offsetMax = new Vector2(-4f, -28f);
                 buyProfitRectTransform.offsetMin = new Vector2(7f, -50f);
-                buyProfitRectTransform.anchorMax = new Vector2(1f, 1f);
-                buyProfitRectTransform.anchorMin = new Vector2(1f, 1f);
+                buyProfitRectTransform.anchorMax = new Vector2(1.35f, 1f);
+                buyProfitRectTransform.anchorMin = new Vector2(0.95f, 1f);
 
-                // Create a new GameObject for the sell profit text, using the averageObj as a template to ensure consistent styling
-                GameObject sellProfitLabel = new GameObject("sell-profit-label", typeof(RectTransform));
+
+                // --- SELL PROFIT LABEL ---
+                GameObject sellProfitLabel = GameObject.Instantiate(averageObj, windowRight.transform);
+                sellProfitLabel.name = "sell-profit-label";
                 CheckIfObjExistsClass.CheckIfObjExistsClass.CheckIfObjExists(sellProfitLabel);
-                sellProfitLabel.transform.parent = windowRight.transform;
-                TextMeshProUGUI sellProfitText = sellProfitLabel.AddComponent<TextMeshProUGUI>();
+
+                // Define a unique localization key for the sell profit label
+                string sellProfitKey = "sell_profit_key";
+
+                // Register the key into the mod localization dictionary
+                Localization.AddModLocalization($"{sellProfitKey}", "Sell Profit");
+
+                // FIX 1: Get the existing component instead of adding a duplicate
+                TextMeshProUGUI sellProfitText = sellProfitLabel.GetComponent<TextMeshProUGUI>();
                 RectTransform sellProfitRectTransform = sellProfitLabel.GetComponent<RectTransform>();
 
-                // sellProfitText text configuration
-                sellProfitText.text = averageObj.GetComponent<TextMeshProUGUI>().text;
-                sellProfitText.text = "Sell Profit";
+                // Set the text using the localization system so it can be translated
+                sellProfitLabel.GetComponent<zip.lexy.tgame.localization.LocalizeField>().key = sellProfitKey;
+
+                // FIX 2: Use ForKey here as well
+                sellProfitText.text = Localization.ForKey($"{sellProfitKey}");
+
+                // FIX 3: Adjusted font sizes
                 sellProfitText.fontSize = 16f;
                 sellProfitText.fontSizeMax = 72f;
-                sellProfitText.fontSizeMin = 18f;
+                sellProfitText.fontSizeMin = 12f;
 
-                sellProfitRectTransform.offsetMax = new Vector2(-4f, -29f);
+                sellProfitRectTransform.offsetMax = new Vector2(-4f, -25f);
                 sellProfitRectTransform.offsetMin = new Vector2(90f, -50f);
-                sellProfitRectTransform.anchorMax = new Vector2(1f, 1f);
+                sellProfitRectTransform.anchorMax = new Vector2(1.75f, 1f);
                 sellProfitRectTransform.anchorMin = new Vector2(1f, 1f);
 
                 Type tradeWindow = typeof(TradeWindow);
